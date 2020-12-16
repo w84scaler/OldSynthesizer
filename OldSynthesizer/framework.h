@@ -10,4 +10,6 @@
 #include <memory.h>
 #include <tchar.h>
 
-#include <mmeapi.h>
+#pragma comment(lib, "Winmm.lib")
+#include "mmeapi.h"
+#include <commdlg.h>
