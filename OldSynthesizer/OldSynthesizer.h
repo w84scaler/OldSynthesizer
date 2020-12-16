@@ -50,6 +50,7 @@ int tranformFromWhiteToAll[] = { 0, 2, 4, 5, 7, 9, 11, 12, 14, 16, 17, 19, 21, 2
 int tranformFromBlackToAll[] = { 1, 3, 6, 8, 10, 13, 15, 18, 20, 22, 25, 27, 30 };
 
 PKeyStruct pKey = {};
+COLORREF acrCustClr[16] = { };
 HFONT hFont;
 HMIDIOUT hmidi;
 

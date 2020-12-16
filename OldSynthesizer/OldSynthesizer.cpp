@@ -136,6 +136,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
     switch (message)
     {
+        case WM_SIZE:
+        {
+            for (int i = 0; i < 19; i++)
+                pKey->isWhitePress[i] = false;
+            for (int i = 0; i < 13; i++)
+                pKey->isBlackPress[i] = false;
+            InvalidateRect(hWnd, NULL, false);
+        }
+        break;
     case WM_COMMAND:
         {
             int wmId = LOWORD(wParam);
@@ -151,6 +160,27 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             case MENU_PEDAL:
                 {
                     OnCheckMenuItem(hWnd, &isPedal, MENU_PEDAL);
+                    InvalidateRect(hWnd, NULL, false);
+                }
+                break;
+            case INST_PIANO:
+                {
+                    instrumentIndex = 0;
+                    instrument = instrumentArray[0];
+                    InvalidateRect(hWnd, NULL, false);
+                }
+                break;
+            case INST_GUITAR:
+                {
+                    instrumentIndex = 1;
+                    instrument = instrumentArray[1];
+                    InvalidateRect(hWnd, NULL, false);
+                }
+                break;
+            case INST_DRUM:
+                {
+                    instrumentIndex = 2;
+                    instrument = instrumentArray[2];
                     InvalidateRect(hWnd, NULL, false);
                 }
                 break;
@@ -506,12 +536,11 @@ VOID OnCheckMenuItem(HWND hWnd, BOOL* flag, UINT menuItemCode)
 
 VOID OnColorChange(HWND hWnd, HBRUSH* keyBrush) 
 {
-    COLORREF acrCustClr[2] = { RGB(0, 5, 5), RGB(0, 15, 55) };
     CHOOSECOLOR dlgBox = { 0 };
     dlgBox.hwndOwner = hWnd;
     dlgBox.lStructSize = sizeof(CHOOSECOLOR);
     dlgBox.lpTemplateName = "Customization";
-    dlgBox.rgbResult = RGB(94, 211, 253);
+    dlgBox.rgbResult = RGB(127, 127, 127);
     dlgBox.lpCustColors = (LPDWORD)acrCustClr;
     dlgBox.Flags = CC_FULLOPEN | CC_RGBINIT;
     if (ChooseColor(&dlgBox)) {
