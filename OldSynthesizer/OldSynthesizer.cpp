@@ -7,9 +7,6 @@ HINSTANCE hInst;
 CHAR szTitle[MAX_LOADSTRING];                  
 CHAR szWindowClass[MAX_LOADSTRING];    
 
-PKeyStruct pKey = {};
-HFONT hFont;
-
 ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
@@ -78,7 +75,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
    hInst = hInstance;
 
    HWND hWnd = CreateWindow(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
-      CW_USEDEFAULT, 0, 21 * WHITE_WIDTH, 500, nullptr, nullptr, hInstance, nullptr);
+      CW_USEDEFAULT, 0, 21 * WHITE_WIDTH, 3 * WHITE_WIDTH + WHITE_HEIGHT - 11, nullptr, nullptr, hInstance, nullptr);
 
    if (!hWnd)
    {
@@ -95,6 +92,14 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 
 VOID InitMenu(HWND hWnd)
 {
+    HMENU progmenu = CreatePopupMenu();
+    //SetMenuItemBitmaps(progmenu, 0, MF_BYPOSITION, nullptr, nullptr);
+    AppendMenu(progmenu, MF_CHECKED, MENU_SIGN, "Sign\tTab");
+    //SetMenuItemBitmaps(progmenu, 1, MF_BYPOSITION, nullptr, nullptr);
+    AppendMenu(progmenu, MF_CHECKED, MENU_PEDAL, "Pedal\tLShift");
+    AppendMenu(progmenu, MF_STRING, IDM_ABOUT, "About\tF1");
+    AppendMenu(progmenu, MF_STRING, IDM_EXIT, "Exit\tAlt+F4");
+
     HMENU instmenu = CreatePopupMenu();
     AppendMenu(instmenu, MF_STRING, INST_PIANO, "Piano\tF2");
     AppendMenu(instmenu, MF_STRING, INST_GUITAR, "Guitar\tF3");
@@ -109,9 +114,9 @@ VOID InitMenu(HWND hWnd)
     AppendMenu(octmenu, MF_STRING, OCT_THIRD, "Third+");
 
     HMENU menu = CreateMenu();
+    AppendMenu(menu, MF_POPUP, (UINT_PTR)progmenu, "Synthesizer");
     AppendMenu(menu, MF_POPUP, (UINT_PTR)instmenu, "Instrument");
     AppendMenu(menu, MF_POPUP, (UINT_PTR)octmenu, "Octave");
-    AppendMenu(menu, MF_STRING, MENU_HELP, "Help");
     SetMenu(hWnd, menu);
 }
 
@@ -126,6 +131,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
             switch (wmId)
             {
+            case MENU_SIGN:
+                break;
             case IDM_ABOUT:
                 DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
                 break;
@@ -144,8 +151,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
             LOGFONT lf;
             ZeroMemory(&lf, sizeof(LOGFONT));
-            lf.lfHeight = 38;
-            strcpy_s(lf.lfFaceName, "Impact");
+            lf.lfHeight = 25;
+            strcpy_s(lf.lfFaceName, "Consolas");
             hFont = CreateFontIndirect(&lf);
 
             pKey->hbrBlack = CreateSolidBrush(RGB(0, 0, 0));
@@ -168,6 +175,46 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 pKey->blackRect[blackCount].left = KEY_LEFT + WHITE_WIDTH * (i + 1) - BLACK_WIDTH / 2;
                 pKey->blackRect[blackCount].right = pKey->blackRect[blackCount].left + BLACK_WIDTH;
                 blackCount++;
+            }
+        }
+        break;
+    case WM_KEYDOWN:
+        {
+            if ((wParam > 112) && (wParam < 116))
+            {
+                instrumentIndex = wParam - 113;
+                InvalidateRect(hWnd, NULL, false);
+            }
+
+            switch (wParam)
+            {
+            case VK_F1:
+                DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
+                break;
+            case VK_TAB:
+                {
+                    isSign = isSign xor 1;
+                    InvalidateRect(hWnd, NULL, false);
+                }
+                break;
+            case VK_LEFT:
+                {
+                    if (Octave > -3)
+                    {
+                        Octave--;
+                        InvalidateRect(hWnd, NULL, false);
+                    }
+                }
+                break;
+            case VK_RIGHT:
+                {
+                    if (Octave < 2)
+                    {
+                        Octave++;
+                        InvalidateRect(hWnd, NULL, false);
+                    }
+                }
+                break;
             }
         }
         break;
@@ -200,6 +247,29 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                     SelectObject(buffDC, pKey->hbrBlack);
                 Rectangle(buffDC, pKey->blackRect[i].left, pKey->blackRect[i].top, pKey->blackRect[i].right, pKey->blackRect[i].bottom);
             }
+
+            if (isSign)
+            {
+                SelectObject(buffDC, hFont);
+                for (int i = 0; i < 13; i++)
+                {
+                    SetTextColor(buffDC, RGB(255, 255, 255));
+                    SetBkMode(buffDC, TRANSPARENT);
+                    DrawText(buffDC, blackSimbols[i], 1, &pKey->blackRect[i], DT_BOTTOM | DT_SINGLELINE | DT_CENTER);
+                }
+                for (int i = 0; i < 19; i++)
+                {
+                    SetTextColor(buffDC, RGB(0, 0, 0));
+                    SetBkMode(buffDC, TRANSPARENT);
+                    DrawText(buffDC, whiteSimbols[i], 1, &pKey->whiteRect[i], DT_BOTTOM | DT_SINGLELINE | DT_CENTER);
+                }
+            }
+
+            SelectObject(buffDC, hFont);
+            TextOut(buffDC, KEY_LEFT, KEY_TOP + WHITE_HEIGHT + 15, octaves[Octave + 3], 20);
+
+            SelectObject(buffDC, hFont);
+            TextOut(buffDC, KEY_LEFT, 15, instruments[instrumentIndex], 6);
             
             SetStretchBltMode(hdc, COLORONCOLOR);
             BitBlt(hdc, 0, 0, clientRect.right - clientRect.left, clientRect.bottom - clientRect.top, buffDC, 0, 0, SRCCOPY);
@@ -220,7 +290,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     return 0;
 }
 
-// Обработчик сообщений для окна "О программе". А ты пока поживешь
 INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
     UNREFERENCED_PARAMETER(lParam);
