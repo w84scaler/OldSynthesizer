@@ -2,6 +2,8 @@
 
 #include "resource.h"
 
+#define SOUND_SPEED 120
+
 #define WHITE_WIDTH 60
 #define BLACK_WIDTH 40
 #define WHITE_HEIGHT 250
@@ -72,3 +74,5 @@ BOOL isWhite(int index);
 VOID OnCheckMenuItem(HWND hWnd, BOOL* flag, UINT menuItemCode);
 VOID OnColorChange(HWND hWnd, HBRUSH* keyBrush);
 VOID FindMouseKey(INT x, INT y);
+VOID PlaySound(INT index, INT colorBW);
+VOID StopSound(INT index, INT colorBW);

@@ -127,8 +127,6 @@ VOID InitMenu(HWND hWnd)
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
-    DWORD midimsg;
-    BYTE Speed;
     INT x, y;
 
     INT ksIndex = 0;
@@ -240,7 +238,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         break;
     case WM_KEYDOWN:
         {
-            Speed = 120;
             while ((ksIndex < 37) && (!keyFinded))
             {
                 if (keySimbols[ksIndex] == wParam)
@@ -252,7 +249,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             {
                 if (!(lParam & 0x40000000)) {
                     midiOutShortMsg(hmidi, 0x00000000 + instrument + 0xC0);
-                    midimsg = 0x90 + (60 + keyArray[ksIndex] + Octave * 12) * 0x100 + Speed * 0x10000;
+                    DWORD midimsg = 0x90 + (60 + keyArray[ksIndex] + Octave * 12) * 0x100 + SOUND_SPEED * 0x10000;
                     midiOutShortMsg(hmidi, midimsg);
                     if (isWhite(keyArray[ksIndex]))
                         pKey->isWhitePress[tranformFromAllKeysToWB[keyArray[ksIndex]]] = true;
@@ -309,7 +306,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         break;
     case WM_KEYUP:
         {
-            Speed = 0;
             while ((ksIndex < 37) && (!keyFinded))
             {
                 if (keySimbols[ksIndex] == wParam)
@@ -319,7 +315,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             }
             if (keyFinded) {
                 if (!isPedal) {
-                    midimsg = 0x90 + (60 + keyArray[ksIndex] + Octave * 12) * 0x100 + Speed * 0x10000;
+                    DWORD midimsg = 0x90 + (60 + keyArray[ksIndex] + Octave * 12) * 0x100 + SOUND_SPEED * 0x10000;
                     midiOutShortMsg(hmidi, midimsg);
                 }
                 if (isWhite(keyArray[ksIndex]))
@@ -344,40 +340,17 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                     if (mouseBW != mouseBWCopy || mouseIndex != mouseIndexCopy || mouseMiss)
                     {
                         mouseMiss = false;
-                        Speed = 0;
-                        if (!isPedal)
-                        {
-                            if (mouseBWCopy)
-                                midimsg = 0x90 + (60 + tranformFromWhiteToAll[mouseIndexCopy] + Octave * 12) * 0x100 + Speed * 0x10000;
-                            else
-                                midimsg = 0x90 + (60 + tranformFromBlackToAll[mouseIndexCopy - 1] + Octave * 12) * 0x100 + Speed * 0x10000;
-                            midiOutShortMsg(hmidi, midimsg);
-                        }
+                        StopSound(mouseIndexCopy, mouseBWCopy);
                         if (mouseBWCopy)
                             pKey->isWhitePress[mouseIndexCopy] = false;
                         else
                             pKey->isBlackPress[mouseIndexCopy - 1] = false;
-
-                        Speed = 120;
-                        midiOutShortMsg(hmidi, 0x00000000 + instrument + 0xC0);
-                        if (mouseBW)
-                            midimsg = 0x90 + (60 + tranformFromWhiteToAll[mouseIndex] + Octave * 12) * 0x100 + Speed * 0x10000;
-                        else
-                            midimsg = 0x90 + (60 + tranformFromBlackToAll[mouseIndex - 1] + Octave * 12) * 0x100 + Speed * 0x10000;
-                        midiOutShortMsg(hmidi, midimsg);
+                        PlaySound(mouseIndex, mouseBW);
                     }
                 }
                 else
                 {
-                    Speed = 0;
-                    if (!isPedal)
-                    {
-                        if (mouseBW)
-                            midimsg = 0x90 + (60 + tranformFromWhiteToAll[mouseIndex] + Octave * 12) * 0x100 + Speed * 0x10000;
-                        else
-                            midimsg = 0x90 + (60 + tranformFromBlackToAll[mouseIndex - 1] + Octave * 12) * 0x100 + Speed * 0x10000;
-                        midiOutShortMsg(hmidi, midimsg);
-                    }
+                    StopSound(mouseIndex, mouseBW);
                     if (mouseBW)
                         pKey->isWhitePress[mouseIndex] = false;
                     else
@@ -390,41 +363,22 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         break;
     case WM_LBUTTONDOWN:
         {
-            Speed = 120;
             x = LOWORD(lParam);
             y = HIWORD(lParam);
             mouse = true;
             if ((x < KEY_LEFT + 19 * WHITE_WIDTH) && (x > KEY_LEFT) && (y < WHITE_HEIGHT + KEY_TOP) && (y > KEY_TOP))
             {
                 FindMouseKey(x, y);
-                midiOutShortMsg(hmidi, 0x00000000 + instrument + 0xC0);
-                if (mouseBW)
-                    midimsg = 0x90 + (60 + tranformFromWhiteToAll[mouseIndex] + Octave * 12) * 0x100 + Speed * 0x10000;
-                else
-                    midimsg = 0x90 + (60 + tranformFromBlackToAll[mouseIndex - 1] + Octave * 12) * 0x100 + Speed * 0x10000;
-                midiOutShortMsg(hmidi, midimsg);
+                PlaySound(mouseIndex, mouseBW);
                 InvalidateRect(hWnd, NULL, false);
             }
         }
         break;
     case WM_LBUTTONUP:
         {
-            Speed = 0;
             if (mouse)
             {
-                if (!isPedal)
-                {
-                    if (mouseBW)
-                    {
-                        midimsg = 0x90 + (60 + tranformFromWhiteToAll[mouseIndex] + Octave * 12) * 0x100 + Speed * 0x10000;
-                        midiOutShortMsg(hmidi, midimsg);
-                    }
-                    else
-                    {
-                        midimsg = 0x90 + (60 + tranformFromBlackToAll[mouseIndex - 1] + Octave * 12) * 0x100 + Speed * 0x10000;
-                        midiOutShortMsg(hmidi, midimsg);
-                    }
-                }
+                StopSound(mouseIndex, mouseBW);
                 if (mouseBW)
                     pKey->isWhitePress[mouseIndex] = false;
                 else
@@ -615,7 +569,31 @@ VOID FindMouseKey(INT x, INT y)
     }
 }
 
-VOID KeyUp()
+VOID PlaySound(INT index, INT colorBW)
 {
+    DWORD midimsg;
+    midiOutShortMsg(hmidi, 0x00000000 + instrument + 0xC0);
+    if (colorBW)
+        midimsg = 0x90 + (60 + tranformFromWhiteToAll[index] + Octave * 12) * 0x100 + SOUND_SPEED * 0x10000;
+    else
+        midimsg = 0x90 + (60 + tranformFromBlackToAll[index - 1] + Octave * 12) * 0x100 + SOUND_SPEED * 0x10000;
+    midiOutShortMsg(hmidi, midimsg);
+}
 
+VOID StopSound(INT index, INT colorBW)
+{
+    DWORD midimsg;
+    if (!isPedal)
+    {
+        if (colorBW)
+        {
+            midimsg = 0x90 + (60 + tranformFromWhiteToAll[index] + Octave * 12) * 0x100 + 0 * 0x10000;
+            midiOutShortMsg(hmidi, midimsg);
+        }
+        else
+        {
+            midimsg = 0x90 + (60 + tranformFromBlackToAll[index - 1] + Octave * 12) * 0x100 + 0 * 0x10000;
+            midiOutShortMsg(hmidi, midimsg);
+        }
+    }
 }
