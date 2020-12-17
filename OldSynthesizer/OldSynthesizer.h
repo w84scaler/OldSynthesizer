@@ -58,14 +58,12 @@ BOOL isSign = false;
 BOOL isPedal = false;
 BOOL mouse;
 BOOL mouseBW;
+BOOL mouseMiss;
 
 INT mouseIndex;
 INT keyArray[37];
-INT Octave = 0;
-INT deltaVolume = 0x22222222;
+INT Octave = -1;
 INT instrument = 0x0000;
-INT whiteBrushIndex = 0;
-INT blackBrushIndex = 0;
 INT instrumentIndex = 0;
 
 VOID InitMenu(HWND hWnd);
@@ -73,3 +71,4 @@ VOID FillKeyArrays();
 BOOL isWhite(int index);
 VOID OnCheckMenuItem(HWND hWnd, BOOL* flag, UINT menuItemCode);
 VOID OnColorChange(HWND hWnd, HBRUSH* keyBrush);
+VOID FindMouseKey(INT x, INT y);

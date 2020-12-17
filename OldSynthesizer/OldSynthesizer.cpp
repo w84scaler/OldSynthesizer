@@ -129,10 +129,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     DWORD midimsg;
     BYTE Speed;
+    INT x, y;
+
     INT ksIndex = 0;
     BOOL keyFinded = false;
-    INT x, y;
-    INT whiteIndex, blackIndex;
 
     switch (message)
     {
@@ -217,7 +217,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
             pKey->hbrBlack = CreateSolidBrush(RGB(0, 0, 0));
             pKey->hbrWhite = CreateSolidBrush(RGB(255, 255, 255));
-            pKey->hbrGray = CreateSolidBrush(RGB(255, 0, 0));
+            pKey->hbrGray = CreateSolidBrush(RGB(127, 127, 127));
             for (int i = 0; i < 19; i++)
             {
                 pKey->whiteRect[i].top = KEY_TOP;
@@ -330,55 +330,79 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             }
         }
         break;
+    case WM_MOUSEMOVE: 
+        {
+            if (mouse) 
+            {
+                BOOL mouseBWCopy = mouseBW;
+                INT mouseIndexCopy = mouseIndex;
+                x = LOWORD(lParam);
+                y = HIWORD(lParam);
+                if ((x < KEY_LEFT + 19 * WHITE_WIDTH) && (x > KEY_LEFT) && (y < WHITE_HEIGHT + KEY_TOP) && (y > KEY_TOP))
+                { 
+                    FindMouseKey(x, y);
+                    if (mouseBW != mouseBWCopy || mouseIndex != mouseIndexCopy || mouseMiss)
+                    {
+                        mouseMiss = false;
+                        Speed = 0;
+                        if (!isPedal)
+                        {
+                            if (mouseBWCopy)
+                                midimsg = 0x90 + (60 + tranformFromWhiteToAll[mouseIndexCopy] + Octave * 12) * 0x100 + Speed * 0x10000;
+                            else
+                                midimsg = 0x90 + (60 + tranformFromBlackToAll[mouseIndexCopy - 1] + Octave * 12) * 0x100 + Speed * 0x10000;
+                            midiOutShortMsg(hmidi, midimsg);
+                        }
+                        if (mouseBWCopy)
+                            pKey->isWhitePress[mouseIndexCopy] = false;
+                        else
+                            pKey->isBlackPress[mouseIndexCopy - 1] = false;
+
+                        Speed = 120;
+                        midiOutShortMsg(hmidi, 0x00000000 + instrument + 0xC0);
+                        if (mouseBW)
+                            midimsg = 0x90 + (60 + tranformFromWhiteToAll[mouseIndex] + Octave * 12) * 0x100 + Speed * 0x10000;
+                        else
+                            midimsg = 0x90 + (60 + tranformFromBlackToAll[mouseIndex - 1] + Octave * 12) * 0x100 + Speed * 0x10000;
+                        midiOutShortMsg(hmidi, midimsg);
+                    }
+                }
+                else
+                {
+                    Speed = 0;
+                    if (!isPedal)
+                    {
+                        if (mouseBW)
+                            midimsg = 0x90 + (60 + tranformFromWhiteToAll[mouseIndex] + Octave * 12) * 0x100 + Speed * 0x10000;
+                        else
+                            midimsg = 0x90 + (60 + tranformFromBlackToAll[mouseIndex - 1] + Octave * 12) * 0x100 + Speed * 0x10000;
+                        midiOutShortMsg(hmidi, midimsg);
+                    }
+                    if (mouseBW)
+                        pKey->isWhitePress[mouseIndex] = false;
+                    else
+                        pKey->isBlackPress[mouseIndex - 1] = false;
+                    mouseMiss = true;
+                }
+                InvalidateRect(hWnd, NULL, false);
+            }
+        }
+        break;
     case WM_LBUTTONDOWN:
         {
-        Speed = 120;
+            Speed = 120;
             x = LOWORD(lParam);
             y = HIWORD(lParam);
             mouse = true;
             if ((x < KEY_LEFT + 19 * WHITE_WIDTH) && (x > KEY_LEFT) && (y < WHITE_HEIGHT + KEY_TOP) && (y > KEY_TOP))
             {
-                whiteIndex = (x - KEY_LEFT) / WHITE_WIDTH;
-                keyFinded = false;
-                blackIndex = 0;
-                if (y <= KEY_TOP + BLACK_HEIGHT)
-                {
-                    while (!keyFinded && (blackIndex < 13))
-                    {
-                        if ((x >= pKey->blackRect[blackIndex].left) && (x <= pKey->blackRect[blackIndex].right))
-                        {
-                            keyFinded = true;
-                        }
-                        blackIndex++;
-                    }
-                    if (keyFinded)
-                    {
-                        pKey->isBlackPress[blackIndex - 1] = true;
-                        midiOutShortMsg(hmidi, 0x00000000 + instrument + 0xC0);
-                        midimsg = 0x90 + (60 + tranformFromBlackToAll[blackIndex - 1] + Octave * 12) * 0x100 + Speed * 0x10000;
-                        midiOutShortMsg(hmidi, midimsg);                       
-                        mouseBW = false;
-                        mouseIndex = blackIndex;
-                    }
-                    else
-                    {
-                        pKey->isWhitePress[whiteIndex] = true;
-                        midiOutShortMsg(hmidi, 0x00000000 + instrument + 0xC0);
-                        midimsg = 0x90 + (60 + tranformFromWhiteToAll[whiteIndex] + Octave * 12) * 0x100 + Speed * 0x10000;
-                        midiOutShortMsg(hmidi, midimsg);
-                        mouseBW = true;
-                        mouseIndex = whiteIndex;
-                    }
-                }
+                FindMouseKey(x, y);
+                midiOutShortMsg(hmidi, 0x00000000 + instrument + 0xC0);
+                if (mouseBW)
+                    midimsg = 0x90 + (60 + tranformFromWhiteToAll[mouseIndex] + Octave * 12) * 0x100 + Speed * 0x10000;
                 else
-                {
-                    pKey->isWhitePress[whiteIndex] = true;
-                    midiOutShortMsg(hmidi, 0x00000000 + instrument + 0xC0);
-                    midimsg = 0x90 + (60 + tranformFromWhiteToAll[whiteIndex] + Octave * 12) * 0x100 + Speed * 0x10000;
-                    midiOutShortMsg(hmidi, midimsg);
-                    mouseBW = true;
-                    mouseIndex = whiteIndex;
-                }
+                    midimsg = 0x90 + (60 + tranformFromBlackToAll[mouseIndex - 1] + Octave * 12) * 0x100 + Speed * 0x10000;
+                midiOutShortMsg(hmidi, midimsg);
                 InvalidateRect(hWnd, NULL, false);
             }
         }
@@ -388,15 +412,18 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             Speed = 0;
             if (mouse)
             {
-                if (mouseBW && !isPedal)
+                if (!isPedal)
                 {
-                    midimsg = 0x90 + (60 + tranformFromWhiteToAll[mouseIndex] + Octave * 12) * 0x100 + Speed * 0x10000;
-                    midiOutShortMsg(hmidi, midimsg);
-                }
-                else
-                {
-                    midimsg = 0x90 + (60 + tranformFromBlackToAll[mouseIndex - 1] + Octave * 12) * 0x100 + Speed * 0x10000;
-                    midiOutShortMsg(hmidi, midimsg);
+                    if (mouseBW)
+                    {
+                        midimsg = 0x90 + (60 + tranformFromWhiteToAll[mouseIndex] + Octave * 12) * 0x100 + Speed * 0x10000;
+                        midiOutShortMsg(hmidi, midimsg);
+                    }
+                    else
+                    {
+                        midimsg = 0x90 + (60 + tranformFromBlackToAll[mouseIndex - 1] + Octave * 12) * 0x100 + Speed * 0x10000;
+                        midiOutShortMsg(hmidi, midimsg);
+                    }
                 }
                 if (mouseBW)
                     pKey->isWhitePress[mouseIndex] = false;
@@ -507,7 +534,7 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
     return (INT_PTR)FALSE;
 }
 
-void FillKeyArrays()
+VOID FillKeyArrays()
 {
     for (int i = 0; i < 17; i++)
         keyArray[i] = i;
@@ -548,4 +575,47 @@ VOID OnColorChange(HWND hWnd, HBRUSH* keyBrush)
         *keyBrush = CreateSolidBrush(rgb);
         InvalidateRect(hWnd, NULL, false);
     }
+}
+
+VOID FindMouseKey(INT x, INT y) 
+{
+    INT whiteIndex, blackIndex;
+
+    whiteIndex = (x - KEY_LEFT) / WHITE_WIDTH;
+    BOOL keyFinded = false;
+    blackIndex = 0;
+    if (y <= KEY_TOP + BLACK_HEIGHT)
+    {
+        while (!keyFinded && (blackIndex < 13))
+        {
+            if ((x >= pKey->blackRect[blackIndex].left) && (x <= pKey->blackRect[blackIndex].right))
+            {
+                keyFinded = true;
+            }
+            blackIndex++;
+        }
+        if (keyFinded)
+        {
+            pKey->isBlackPress[blackIndex - 1] = true;
+            mouseBW = false;
+            mouseIndex = blackIndex;
+        }
+        else
+        {
+            pKey->isWhitePress[whiteIndex] = true;
+            mouseBW = true;
+            mouseIndex = whiteIndex;
+        }
+    }
+    else
+    {
+        pKey->isWhitePress[whiteIndex] = true;
+        mouseBW = true;
+        mouseIndex = whiteIndex;
+    }
+}
+
+VOID KeyUp()
+{
+
 }
