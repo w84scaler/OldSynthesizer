@@ -315,7 +315,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             }
             if (keyFinded) {
                 if (!isPedal) {
-                    DWORD midimsg = 0x90 + (60 + keyArray[ksIndex] + Octave * 12) * 0x100 + SOUND_SPEED * 0x10000;
+                    DWORD midimsg = 0x90 + (60 + keyArray[ksIndex] + Octave * 12) * 0x100 + 0 * 0x10000;
                     midiOutShortMsg(hmidi, midimsg);
                 }
                 if (isWhite(keyArray[ksIndex]))
