@@ -12,6 +12,8 @@ BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
 
+HWND hWindow;
+
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                      _In_opt_ HINSTANCE hPrevInstance,
@@ -34,7 +36,11 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
     MSG msg;
 
-    midiOutOpen(&hmidi, MIDI_MAPPER, 0, 0, 0);
+    if (midiOutOpen(&hmidi, MIDI_MAPPER, 0, 0, 0) != MMSYSERR_NOERROR) {
+        MessageBox(hWindow, "Cannot connect to device", "Connection fail", MB_OK);
+        return NULL;
+    }
+    ;
     FillKeyArrays();
 
     while (GetMessage(&msg, nullptr, 0, 0))
@@ -84,6 +90,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 
    HWND hWnd = CreateWindow(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW & ~WS_MAXIMIZEBOX & ~WS_SIZEBOX,
        (Horres - 21 * WHITE_WIDTH) / 2, (3 * WHITE_WIDTH + WHITE_HEIGHT) / 2 + WHITE_WIDTH, 21 * WHITE_WIDTH, 3 * WHITE_WIDTH + WHITE_HEIGHT - 11, nullptr, nullptr, hInstance, nullptr);
+   hWindow = hWnd;
 
    if (!hWnd)
    {
@@ -195,6 +202,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
                 break;
             case IDM_EXIT:
+                midiOutClose(hmidi);
                 DestroyWindow(hWnd);
                 break;
             default:
